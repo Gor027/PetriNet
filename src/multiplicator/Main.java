@@ -21,16 +21,20 @@ public class Main {
 
         @Override
         public void run() {
-            while (true) {
-                try {
+            try {
+                while (true) {
                     this.net.fire(this.transitions);
                     // Count won't be incremented if in transitions none of them is enabled.
                     countFired.getAndIncrement(this.id);
-                } catch (InterruptedException e) {
-                    System.out.println(Thread.currentThread().getName() + " has fired: " + countFired.get(this.id));
-                    Thread.currentThread().interrupt();
+                    // After firing waiting 1 second allows others to enter critical section and fire.
+                    // This helps to have normal distribution between 4 threads to equally fire.
+                    sleep(1000);
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println(Thread.currentThread().getName() + " has fired: " + countFired.get(this.id));
             }
+
         }
     }
 
@@ -78,7 +82,9 @@ public class Main {
         Map<Place, Integer> firstTrInput = new HashMap<>();
         firstTrInput.put(Place.B, 1);
         firstTrInput.put(Place.A, A);
-        Map<Place, Integer> firstTrOutput = Collections.singletonMap(Place.A, A);
+        Map<Place, Integer> firstTrOutput = new HashMap<>();
+        firstTrOutput.put(Place.A, A);
+        firstTrOutput.put(Place.AUX, A);
 
         Map<Place, Integer> mainTrInput = Collections.singletonMap(Place.AUX, A * B);
         Map<Place, Integer> mainTrOutput = Collections.singletonMap(Place.RES, A * B);
@@ -98,7 +104,7 @@ public class Main {
         // If one of the numbers is 0 then none of the transitions will be fired.
         if (A == 0 || B == 0) {
             // Print tokens in RES place which is 0.
-            System.out.println(initialMarking.get(Place.RES));
+            System.out.println(0);
 
             for (Thread t : threads)
                 t.interrupt();

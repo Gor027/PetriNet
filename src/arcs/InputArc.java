@@ -20,12 +20,13 @@ public class InputArc<T> extends Arc<T> {
 
     @Override
     public void fire(Map<T, Integer> places) {
-//         Remove from place as many tokens as weight of input arc.
+//           Remove from place as many tokens as weight of input arc.
         if ((places.get(this.place) - this.weight) > 0)
             places.put(this.place, places.get(this.place) - this.weight);
         else if ((places.get(this.place) - this.weight) == 0) {
             places.put(this.place, 0);
             places.remove(this.place);
         }
+
     }
 }
