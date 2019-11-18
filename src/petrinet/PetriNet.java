@@ -1,20 +1,23 @@
 package petrinet;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 
 public class PetriNet<T> {
-    private Map<T, Integer> initialMarking;
+    private ConcurrentHashMap<T, Integer> initialMarking;
     private boolean fair;
 
     // Keeping the thread locks in order.
-    private List<Object> locksList = new ArrayList<>();
+    private ConcurrentLinkedQueue<Object> locksList = new ConcurrentLinkedQueue<>();
 
     //     Map of locks for threads and transitions lists.
     private LockMap map = new LockMap();
 
     public PetriNet(Map<T, Integer> initial, boolean fair) {
-        this.initialMarking = initial;
+        this.initialMarking = new ConcurrentHashMap<>();
+        this.initialMarking.putAll(initial);
         this.fair = fair;
     }
 
@@ -94,7 +97,7 @@ public class PetriNet<T> {
         /**
          * Awake a thread for which there is an enabled transition.
          */
-        synchronized void notifyPossibleLock() {
+        synchronized boolean notifyPossibleLock() {
             List<Object> found = new ArrayList<>();
 
             for (Object currentLock : locksList) {
@@ -115,8 +118,12 @@ public class PetriNet<T> {
                 }
             }
 
-            if (!found.isEmpty())
+            if (!found.isEmpty()) {
                 locksList.removeAll(found);
+                return true;
+            }
+
+            return false;
         }
 
         /**
@@ -145,42 +152,39 @@ public class PetriNet<T> {
         return null;
     }
 
-    private Semaphore entranceLock = new Semaphore(1, this.fair);
+    private Semaphore entranceLock = new Semaphore(1, true);
 
     public Transition<T> fire(Collection<Transition<T>> transitions) throws InterruptedException {
 
         try {
-            entranceLock.acquire();
+
             Object lock = map.createLock(transitions);
             Transition<T> enabled;
 
             synchronized (lock) {
-
                 while ((enabled = getEnabled(transitions)) == null) {
                     if (!locksList.contains(lock)) {
                         // Add to locks list to be awakened.
                         locksList.add(lock);
                         // Unlock for others and wait.
-                        entranceLock.release();
                     }
 
                     lock.wait();
                 }
-
-                // Critical Section
-                enabled.fire(initialMarking);
-
-                // Invoke thread if possible.
-                // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
-                map.notifyPossibleLock();
             }
+
+            entranceLock.acquire();
+            // Critical Section
+            enabled.fire(initialMarking);
+
+            // Invoke thread if possible.
+            // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
+            map.notifyPossibleLock();
 
             return enabled;
 
         } finally {
-            if (entranceLock.availablePermits() == 0) {
-                entranceLock.release();
-            }
+            entranceLock.release();
         }
     }
 }

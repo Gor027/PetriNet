@@ -12,10 +12,7 @@ public class InhibitorArc<T> extends Arc<T> {
     public boolean canFire(Map<T, Integer> places) {
 //         If place is in the map then its value is not 0.
 //        return !places.containsKey(this.place);
-        if (!places.containsKey(this.place))
-            return true;
-
-        return places.get(this.place) == 0;
+        return !places.containsKey(this.place);
     }
 
     @Override

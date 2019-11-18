@@ -31,7 +31,7 @@ public class Main {
 
                     if (this.net.getInitialMarking().get(Place.CS) == 1) {
                         System.out.print(Thread.currentThread().getName() + ".");
-//                        sleep(500);
+                         sleep(5);
                     }
 
                     this.net.fire(this.transitions);

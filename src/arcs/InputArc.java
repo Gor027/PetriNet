@@ -14,7 +14,7 @@ public class InputArc<T> extends Arc<T> {
             return false;
         }
 
-        Integer tokens = places.get(this.place);
+        Integer tokens = (places.get(this.place) == null ? 0 : places.get(this.place));
         return tokens >= this.weight;
     }
 
