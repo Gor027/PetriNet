@@ -2,17 +2,14 @@ package petrinet;
 
 import arcs.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Transition<T> {
 
-    private List<Arc<T>> incoming = new ArrayList<>();
-    private List<Arc<T>> outgoing = new ArrayList<>();
-    private List<Arc<T>> inReset = new ArrayList<>();
-    private List<Arc<T>> inInhibitor = new ArrayList<>();
+    private List<Arc<T>> incoming = Collections.synchronizedList(new ArrayList<>());
+    private List<Arc<T>> outgoing = Collections.synchronizedList(new ArrayList<>());
+    private List<Arc<T>> inReset = Collections.synchronizedList(new ArrayList<>());
+    private List<Arc<T>> inInhibitor = Collections.synchronizedList(new ArrayList<>());
 
     public Transition(Map<T, Integer> input, Collection<T> reset, Collection<T> inhibitor, Map<T, Integer> output) {
         addInputArcs(input);
