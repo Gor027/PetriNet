@@ -26,10 +26,6 @@ public class Main {
                     this.net.fire(this.transitions);
                     // Count won't be incremented if in transitions none of them is enabled.
                     countFired.getAndIncrement(this.id);
-                    // After firing waiting 1 second allows others to enter critical section and fire.
-                    // This helps to have normalized distribution between 4 threads to equally fire.
-                    // Can be removed to have random count for 4 threads and it will be faster.
-//                    sleep(1000);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -116,7 +112,7 @@ public class Main {
         try {
             // When mainTr is enabled then in AUX place there A*B tokens.
             multiplicatorNet.fire(Collections.singleton(mainTr));
-            System.out.println(initialMarking.get(Place.RES));
+            System.out.println(multiplicatorNet.getInitialMarking().get(Place.RES));
 
             // Other 4 threads are finished if mainTr is enabled.
             for (Thread t : threads)

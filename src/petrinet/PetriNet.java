@@ -152,10 +152,11 @@ public class PetriNet<T> {
         return null;
     }
 
-    private Semaphore entranceLock = new Semaphore(1, true);
+    private Semaphore csLock = new Semaphore(1, true);
+    private Semaphore toEnterLock = new Semaphore(1, true);
 
     public Transition<T> fire(Collection<Transition<T>> transitions) throws InterruptedException {
-
+        toEnterLock.acquire();
         try {
 
             Object lock = map.createLock(transitions);
@@ -169,22 +170,25 @@ public class PetriNet<T> {
                         // Unlock for others and wait.
                     }
 
+                    // In a while so that thread will not wake and continue.
+                    toEnterLock.release();
                     lock.wait();
                 }
             }
 
-            entranceLock.acquire();
+            csLock.acquire();
             // Critical Section
             enabled.fire(initialMarking);
-
-            // Invoke thread if possible.
-            // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
-            map.notifyPossibleLock();
+            csLock.release();
 
             return enabled;
 
         } finally {
-            entranceLock.release();
+            // Invoke thread if possible.
+            // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
+            if (!map.notifyPossibleLock()) {
+                toEnterLock.release();
+            }
         }
     }
 }
