@@ -27,8 +27,9 @@ public class Main {
                     // Count won't be incremented if in transitions none of them is enabled.
                     countFired.getAndIncrement(this.id);
                     // After firing waiting 1 second allows others to enter critical section and fire.
-                    // This helps to have normal distribution between 4 threads to equally fire.
-                    sleep(1000);
+                    // This helps to have normalized distribution between 4 threads to equally fire.
+                    // Can be removed to have random count for 4 threads and it will be faster.
+//                    sleep(1000);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -49,7 +50,6 @@ public class Main {
      * A, B is the places with A and B tokens.
      * In Aux multiplication will be stored.
      * After firing the last transition the result will be in RES.
-     * Link to Visualization:
      */
     private enum Place {
         A, B, AUX, RES
@@ -73,6 +73,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
+
         int A = in.nextInt();
         int B = in.nextInt();
 
@@ -124,5 +125,6 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
     }
 }

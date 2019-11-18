@@ -18,7 +18,7 @@ public class PetriNet<T> {
         this.fair = fair;
     }
 
-    public Map<T, Integer> getInitialMarking() {
+    public synchronized Map<T, Integer> getInitialMarking() {
         return initialMarking;
     }
 
@@ -94,21 +94,29 @@ public class PetriNet<T> {
         /**
          * Awake a thread for which there is an enabled transition.
          */
-        synchronized boolean notifyPossibleLock() {
+        synchronized void notifyPossibleLock() {
+            List<Object> found = new ArrayList<>();
+
             for (Object currentLock : locksList) {
                 for (Transition<T> checkEnabled : locks.get(currentLock)) {
                     if (checkEnabled.isEnabled(initialMarking)) {
                         synchronized (currentLock) {
                             currentLock.notify();
 //                          After finishing fire, currentLock will be garbage collected.
-                            locksList.remove(currentLock);
+//                          Iterator is used because in for each remove is not allowed.
+                            found.add(currentLock);
+                            break;
                         }
-                        return true;
                     }
+                }
+
+                if (!found.isEmpty()) {
+                    break;
                 }
             }
 
-            return false;
+            if (!found.isEmpty())
+                locksList.removeAll(found);
         }
 
         /**
@@ -140,31 +148,39 @@ public class PetriNet<T> {
     private Semaphore entranceLock = new Semaphore(1, this.fair);
 
     public Transition<T> fire(Collection<Transition<T>> transitions) throws InterruptedException {
-        entranceLock.acquire();
 
-        Object lock = map.createLock(transitions);
-        Transition<T> enabled;
+        try {
+            entranceLock.acquire();
+            Object lock = map.createLock(transitions);
+            Transition<T> enabled;
 
-        synchronized (lock) {
+            synchronized (lock) {
 
-            while ((enabled = getEnabled(transitions)) == null) {
-                // Add to locks list to be awakened.
-                locksList.add(lock);
-                // Unlock for others and wait.
-                entranceLock.release();
-                lock.wait();
+                while ((enabled = getEnabled(transitions)) == null) {
+                    if (!locksList.contains(lock)) {
+                        // Add to locks list to be awakened.
+                        locksList.add(lock);
+                        // Unlock for others and wait.
+                        entranceLock.release();
+                    }
+
+                    lock.wait();
+                }
+
+                // Critical Section
+                enabled.fire(initialMarking);
+
+                // Invoke thread if possible.
+                // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
+                map.notifyPossibleLock();
             }
 
-            // Critical Section
-            enabled.fire(initialMarking);
+            return enabled;
 
-            // Invoke thread if possible.
-            // If possible to notify anyone who was waiting, then notifies, otherwise opens the lock for new comers.
-            if (!map.notifyPossibleLock()) {
+        } finally {
+            if (entranceLock.availablePermits() == 0) {
                 entranceLock.release();
             }
         }
-
-        return enabled;
     }
 }
