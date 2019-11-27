@@ -17,7 +17,7 @@ A transition is enabled when:
 -For all places that are connected to that transition through input arcs, the number of tokens are bigger than or equal to the weight of the arc between them.
 -For all places that are connected to that transition through inhibitor arcs, the number of tokens is 0.
 
-![](file:///home/Gor027/MIM/PW/PetriNet/220px-Animated_Petri_net_commons.gif)
+![](net.gif)
 
 
 The task is about for a given PetriNet, enable multiple threads to fire transitions on the net with synchronization,
